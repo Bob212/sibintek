@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>VКинотеате</title>
+
+	<link rel="stylesheet" href="css/reset.css">
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+	<!-- DevExtreme themes -->
+	<link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/18.1.6/css/dx.common.css" />
+	<link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/18.1.6/css/dx.light.css" />
+	<!-- DevExtreme library -->
+	<script type="text/javascript" src="https://cdn3.devexpress.com/jslib/18.1.6/js/dx.all.js"></script>
+	
+	<!-- Test DataBase -->
+	<script src="./base.js"></script>
+	<style>
+		html, body {
+			min-width: 900px;
+		}
+		body {
+			padding: 20px;
+		}
+		form {
+			display: block;
+			width: 295px;
+			margin-top: 40px;
+		}
+		form input, form button, form textarea {
+			width: 100%;
+			display: block;
+			border: 1px solid #eee;
+			box-shadow: none;
+			margin-bottom: 10px;
+			padding: 10px;
+			box-sizing: border-box;
+		}
+		form > div {
+			margin-bottom: 10px;
+		}
+		form p {
+			margin-bottom: 5px;
+		}
+		form button {
+			cursor: pointer;
+			background: #eee;
+			color: #969696;
+			height: 40px;
+		}
+		.hide {
+			display: none;
+		}
+	</style>
+
+</head>
+<body class="dx-viewport">
+	<div id="app"></div>
+	<form id="form-add" action="">
+		<div>
+			<p>Название фильма</p>
+			<div class="name required"></div>
+		</div>
+
+		<div>
+			<p>Бюджет фильма</p>
+			<div class="budget required" type="text" name="budget" placeholder="Бюджет"></div>
+		</div>
+
+		<div>
+			<p>Цена фильма</p>
+			<div class="price required" type="text" name="price" placeholder="Цена фильма"></div>
+		</div>
+
+		<div>
+			<p>Жанр</p>
+			<div class="genres required"></div>
+		</div>
+
+		<div>
+			<p>Дата релиза</p>
+			<div id="calendar" class="required"></div>
+		</div>
+		
+		<div class="not-required hide">
+			<p>Страна</p>
+			<div class="country"></div>
+		</div>
+
+		<div class="not-required hide">
+			<p>Описание</p>
+			<div class="description"></div>
+		</div>
+
+		<div class="apend-attentions-here hide"></div>
+
+		<button class="show-more">Показать больше полей</button>
+		<button class="create-new-film"></button>
+	</form>
+
+	<script>
+		var movies_data = test_movies_data;
+		// var movies_data = [];
+	</script>
+
+
+	<script>
+	document.addEventListener('DOMContentLoaded', function () {
+		// загрузка таблицы
+		createTable();
+    	// Форма превентится
+    	$("#form-add").submit(function(e){
+    		e.preventDefault();
+  		});
+		// Кнопка "Показать больше"
+		var btn_showmore_states = ['Показать больше полей', 'Скрыть необязательные поля'];
+		$("#form-add .show-more").dxButton({
+        	text: btn_showmore_states[0],
+        	type: "normal",
+        	width: 295,
+        	onClick: function(e) { 
+				$("#form-add .not-required").toggleClass("hide");	// скрываем / открываем доп поля
+				( $("#form-add .show-more").text() == btn_showmore_states[0] ) ? $("#form-add .show-more").text(btn_showmore_states[1]) : $("#form-add .show-more").text(btn_showmore_states[0]);	// меняем текст кнопки
+        	}
+    	});
+		// Кнопка "Создать"
+		$("#form-add .create-new-film").dxButton({
+        	text: "Создать",
+        	type: "success",
+        	width: 295,
+        	onClick: function(e) { 
+        		$("#form-add .attention").remove();	// удаляем сообщения о незаполненных полях
+				var hasAnError = false;
+
+				$("#form-add .required").each(function(){
+					if ( $("input", this).val()=="" || $("input", this).val()==0 ) {	// если инпут пуст - выводим ошибки
+						if ( $("select", this).length!=0 && $("select", this).children().length!=0 ) {	// если инпут пуст, но есть не пустой селект - не считается :)
+							return;
+						}
+						DevExpress.ui.notify("Не заполнено поле: " + $("p", $(this).parent()).text(), "error");
+						$( "#form-add .apend-attentions-here" ).after( "<p class='attention'>Не заполнено поле: "+ $("p", $(this).parent()).text() +"</p>" );
+						hasAnError = true;
+					}
+				});
+				if (hasAnError) return;	// какое-то поле не заполнено
+
+				// Если ошибок нет - добавляем фильм
+				pushFilmToArr();	// добавляем фильм в массив
+
+				createTable();	// отрисовываем таблицу по массиву
+
+				DevExpress.ui.notify("Фильм успешно добавлен");
+				clearAllFields();	// сбрасываем все поля
+        	}
+    	});
+		$("#form-add input").each(function(){	// удаляем сообщения о незаполненных полях
+			$(this).on( "click", function(){$("#form-add .attention").remove();});
+		});
+		function clearAllFields() {	// сбрасываем все поля
+			$("#form-add .name").dxAutocomplete({value: ""});
+
+			$("#form-add .budget").dxNumberBox({value: 0});
+			$("#form-add .price").dxNumberBox({value: 0});
+			$("#form-add .genres").dxTagBox({value: ""});
+			$("#form-add .country").dxAutocomplete({value: ""});
+			$("#calendar").dxCalendar({value: ""});
+			$("#form-add .description").dxTextArea({value: ""});
+
+
+			// $("#form-add input, #form-add textarea").each(function(){
+			// 	$(this).val("");
+			// });
+		}
+		function pushFilmToArr() {	// добавляем фильм в массив
+			var name = $(".name input").val();
+			var country = $(".country input").val();
+			var release = $("#calendar input").val()
+			var description = $(".description textarea").val();
+			var budget = $(".budget input").val();
+			var price = $(".price input").val();
+			var genres = $(".genres select").val();
+
+			movies_data.push({name: name, country: country, release: release, description: description, budget: budget, price: price, genres: genres});
+		}
+		function createTable() {	// отрисовываем таблицу по массиву
+			$("#app").dxDataGrid({	
+        		dataSource: movies_data,
+        		columns: ["name", "country", "release", "description", {dataField: "budget", dataType: "number", format: "currency"}, {dataField: "price", dataType: "number", format: "currency"}, {dataField: "genres", groupIndex: 0}],
+        		showBorders: true,
+        		searchPanel: {
+            		visible: true
+        		},
+        		grouping: {
+            		autoExpandAll: true,
+        		},
+        		groupPanel: {
+            		visible: true
+        		},
+
+    	});
+		}
+
+
+		// ===================== Создаем dx формы =====================
+		$("#calendar").dxCalendar({	// форма с календарем
+        	firstDayOfWeek: 1,
+    	});
+
+
+
+		 $("#form-add .budget").dxNumberBox({});	// форма с Бюджетом
+		 $("#form-add .price").dxNumberBox({
+        showSpinButtons: true,
+    	});
+
+
+		 $("#form-add .description").dxTextArea({	// форма с описанием
+        height: 90
+  		}).dxTextArea("instance");
+
+
+		 var genres = [{name: 'comedy'}, {name: 'crime'}, {name: 'action'}, {name: 'action'}, {name: 'fantasy'}, {name: 'adventure'}];
+		 $("#form-add .genres").dxTagBox({	// форма с жанрами
+		 	placeholder: "Выберите жанр",
+	        dataSource: genres,
+	        valueExpr: "name",
+        	searchEnabled: true,
+        	displayExpr: "name"
+    	});
+
+		 
+		  $("#form-add .name").dxAutocomplete({	// форма с Названием 
+        	dataSource: movies_data,
+        	valueExpr: "name",
+        	placeholder: "Название фильма",
+        	showClearButton: true,
+    	});
+
+
+		  $("#form-add .country").dxAutocomplete({	// форма со страной
+        dataSource: movies_data,
+        valueExpr: "country",
+        placeholder: "Страна производитель",
+        showClearButton: true,
+    	});
+		// ===================== END Создаем dx формы =====================
+
+		
+
+
+	});
+	</script>
+</body>
+</html>
